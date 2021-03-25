@@ -9,6 +9,7 @@ from django.contrib.sites.models import Site
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.translation import override
 from django.utils.translation import gettext_lazy as _
 from mock import patch
 
@@ -195,28 +196,28 @@ Go to %(user_url)s to activate the account!"""
             "site_domain": site.domain,
             "confirm_url": confirm_url,
         }
-        expected_subject = (
-            settings.EMAIL_SUBJECT_PREFIX
-            + _("Your new %s account confirmation") % site.domain
-        )
-        expected_body = (
-            _(
-                """Welcome %(user)s,
-thank you for signing up for an %(site_domain)s account!
-
-To activate your account, click this link:
-%(confirm_url)s"""
+        with override(settings.LANGUAGE_CODE):
+            expected_subject = (
+                settings.EMAIL_SUBJECT_PREFIX
+                + _("Your new %s account confirmation") % site.domain
             )
-            % values
-            + "\n"
-        )
-        send_mail.assert_called_once_with(
-            expected_subject,
-            expected_body,
-            settings.DEFAULT_FROM_EMAIL,
-            ["new-tester@example.com"],
-            fail_silently=False,
-        )
+            expected_body = (
+                _(
+                    "Welcome %(user)s,\n"
+                    "thank you for signing up for an %(site_domain)s account!\n\n"
+                    "To activate your account, click this link:\n"
+                    "%(confirm_url)s"
+                )
+                % values
+                + "\n"
+            )
+            send_mail.assert_called_once_with(
+                expected_subject,
+                expected_body,
+                settings.DEFAULT_FROM_EMAIL,
+                ["new-tester@example.com"],
+                fail_silently=False,
+            )
 
     @override_settings(
         AUTO_APPROVE_NEW_USERS=False,
